@@ -1,0 +1,12 @@
+#!/bin/sh
+# 开发期保持 Kindle 常亮（不休眠，Wi-Fi 不断，电脑才连得上）。
+#   tools/kdev on    打开：创建 dev.flag，并立刻禁用自动休眠
+#   tools/kdev off   关闭：删掉 dev.flag，恢复自动休眠
+#   tools/kdev       看现在的状态
+# App 启动时才读 dev.flag，所以 on 之后要重启一次 App 才会一直生效；这里同时立刻设一次，当前运行的 App 马上就不休眠。
+cd "$(dirname "$0")/.."
+case "$1" in
+    on)  tools/kssh 'touch /mnt/us/weread/dev.flag; lipc-set-prop com.lab126.powerd preventScreenSaver 1' ;;
+    off) tools/kssh 'rm -f /mnt/us/weread/dev.flag; lipc-set-prop com.lab126.powerd preventScreenSaver 0' ;;
+esac
+tools/kssh 'if [ -f /mnt/us/weread/dev.flag ]; then echo "dev.flag：有（App 启动时会禁用休眠）"; else echo "dev.flag：无"; fi; echo "preventScreenSaver = $(lipc-get-prop com.lab126.powerd preventScreenSaver)"'

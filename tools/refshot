@@ -1,0 +1,9 @@
+#!/bin/sh
+# 截取模拟器里官方墨水屏版的当前界面，作为复刻参照：PNG 截图 + uiautomator 布局（控件位置、文字）。
+# 用法：tools/refshot 名字   → ref/official/名字.png、名字.xml
+set -e
+cd "$(dirname "$0")/.."
+OUT=ref/official/$1
+adb exec-out screencap -p >"$OUT.png"
+adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb pull -q /sdcard/ui.xml "$OUT.xml" >/dev/null 2>&1 || true
+echo "$OUT.png"

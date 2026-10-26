@@ -1,0 +1,12 @@
+#!/bin/sh
+# 在本机所在的局域网里找开着 SSH(2222) 的 Kindle，找到后记到 tools/.kindle-ip，tools/kssh 会自动用它。
+cd "$(dirname "$0")"
+NET=$(ipconfig getifaddr en0 | cut -d. -f1-3)
+[ -n "$NET" ] || { echo "没连局域网"; exit 1; }
+FOUND=$(for i in $(seq 1 254); do
+    (nc -z -G 1 "$NET.$i" 2222 2>/dev/null && echo "$NET.$i") &
+done; wait)
+FOUND=$(echo "$FOUND" | grep . | head -1)
+[ -n "$FOUND" ] || { echo "没找到（Kindle 上点过「开启远程调试」吗？）"; exit 1; }
+echo "$FOUND" >.kindle-ip
+echo "$FOUND"

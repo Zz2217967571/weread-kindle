@@ -1,0 +1,29 @@
+#!/bin/sh
+# 在参照模拟器里操作官方 App：先确认前台是微信读书（不在就重新拉起），再执行点击/按键。
+# 用法：tools/refnav tap X Y [等待秒数] | tools/refnav text 文字 [等待秒数] | tools/refnav back [等待秒数] | tools/refnav launch
+# text：在当前界面里找文字或描述包含该字符串的控件，点它的中心
+PKG=com.tencent.weread.eink
+front() { adb shell dumpsys activity activities | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -q "$PKG"; }
+case "$1" in
+    launch) adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 6 ;;
+    tap) front || { echo "not in app" >&2; exit 1; }; adb shell input tap "$2" "$3"; sleep "${4:-3}" ;;
+    text)
+        front || { echo "not in app" >&2; exit 1; }
+        adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+        xy=$(adb exec-out cat /sdcard/ui.xml | python3 -I -c '
+import re, sys
+key = sys.argv[1]
+x = sys.stdin.read()
+for m in re.finditer(r"<node [^>]*>", x):
+    n = m.group(0)
+    t = re.search(r"text=\"([^\"]*)\"", n).group(1)
+    d = re.search(r"content-desc=\"([^\"]*)\"", n).group(1)
+    if key in t or key in d:
+        a, b, c, e = map(int, re.findall(r"\d+", re.search(r"bounds=\"([^\"]*)\"", n).group(1)))
+        print((a + c) // 2, (b + e) // 2)
+        break
+' "$2")
+        [ -n "$xy" ] || { echo "text not found: $2" >&2; exit 3; }
+        adb shell input tap $xy; sleep "${3:-3}" ;;
+    back) front || { echo "not in app" >&2; exit 1; }; adb shell input keyevent KEYCODE_BACK; sleep "${2:-2}"; front || { echo "left app" >&2; exit 2; } ;;
+esac

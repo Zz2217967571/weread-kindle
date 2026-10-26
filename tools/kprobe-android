@@ -1,0 +1,26 @@
+#!/bin/sh
+# 可行性检查：Kindle 能不能在越狱系统上用容器跑安卓。只读，不改设备上任何东西。
+#   tools/kprobe-android         通过 SSH 直接跑，结果打到终端
+#   tools/kprobe-android --usb   Kindle 以 U 盘方式连着时，在书库里放一个「安卓检查」入口；
+#                                在 Kindle 上点它，结果写到 /mnt/us/kprobe-android.txt，
+#                                再连上电脑后用 --read 查看
+set -e
+cd "$(dirname "$0")/.."
+VOL=/Volumes/Kindle
+case "$1" in
+--usb)
+    {
+        printf '#!/bin/sh\n# Name: 安卓检查\n# Author: weread-kindle\n\n'
+        printf 'exec >/mnt/us/kprobe-android.txt 2>&1\n'
+        cat tools/kprobe-android.remote.sh
+        printf '\nsync\n'
+    } >"$VOL/documents/kprobe-android.sh"
+    echo "已放到书库：$VOL/documents/kprobe-android.sh"
+    ;;
+--read)
+    cat "$VOL/kprobe-android.txt"
+    ;;
+*)
+    tools/kssh sh -s <tools/kprobe-android.remote.sh
+    ;;
+esac

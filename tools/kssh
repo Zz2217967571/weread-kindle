@@ -1,0 +1,5 @@
+#!/bin/sh
+# 通过 SSH 登录 Kindle（端口 2222，密钥登录）。地址优先用 KINDLE_IP，其次 tools/kfind 找到的，最后是默认值。
+DIR=$(dirname "$0")
+IP=${KINDLE_IP:-$(cat "$DIR/.kindle-ip" 2>/dev/null)}
+exec ssh -i ~/.ssh/kindle_ed25519 -p 2222 -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new "root@${IP:?设置 KINDLE_IP=<Kindle 的 IP>，或运行 tools/kfind}" "$@"

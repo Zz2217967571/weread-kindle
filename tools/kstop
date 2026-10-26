@@ -1,0 +1,21 @@
+#!/bin/sh
+# 结束 Kindle 上运行中的 App（或 KOReader），等外层脚本把系统界面恢复完。
+set -e
+cd "$(dirname "$0")/.."
+tools/kssh sh -s <<'REMOTE'
+app_pids() {
+    for p in $(pidof luajit reader.lua 2>/dev/null); do
+        grep -q -E "main\.lua|reader\.lua" "/proc/$p/cmdline" 2>/dev/null && echo "$p"
+    done
+}
+wrapper_running() {
+    for p in $(pidof sh); do
+        grep -q -E "weread-run\.sh|koreader\.sh" "/proc/$p/cmdline" 2>/dev/null && return 0
+    done
+    return 1
+}
+pids=$(app_pids)
+[ -n "$pids" ] && kill -TERM $pids 2>/dev/null
+for i in $(seq 1 20); do wrapper_running || break; sleep 1; done
+echo stopped
+REMOTE

@@ -1,0 +1,41 @@
+#!/bin/sh
+# 在 Kindle 上（重新）启动 App。
+# App 正在运行时只做热重启：外层启动脚本保持不动，只重新跑 main.lua，不去反复停起 Kindle 的系统服务
+# （频繁停起会触发系统的重启保护）。没在运行时才完整启动；如果是 KOReader 在运行，先把它关掉。
+# 开发用环境变量：WEREAD_AUTOOPEN=书名关键字 WEREAD_AUTOTURN=翻页数 WEREAD_AUTOACTION=menu|toc
+set -e
+cd "$(dirname "$0")/.."
+# ssh 会把参数拼成一条命令，空参数会丢，所以每个值前面加一个 "_" 占位，远端再去掉
+tools/kssh sh -s -- "_${WEREAD_AUTOOPEN:-}" "_${WEREAD_AUTOTURN:-}" "_${WEREAD_AUTOACTION:-}" <<'REMOTE'
+# Kindle 的 ps 只显示进程名，要从 /proc/<pid>/cmdline 里认出是 App 还是 KOReader
+pids_of() {
+    for p in $(pidof luajit reader.lua 2>/dev/null); do
+        grep -q -E "$1" "/proc/$p/cmdline" 2>/dev/null && echo "$p"
+    done
+}
+wrapper_running() {
+    for p in $(pidof sh); do
+        grep -q -E "$1" "/proc/$p/cmdline" 2>/dev/null && return 0
+    done
+    return 1
+}
+cat >/tmp/weread-dev.env <<ENV
+export WEREAD_AUTOOPEN="${1#_}" WEREAD_AUTOTURN="${2#_}" WEREAD_AUTOACTION="${3#_}"
+ENV
+
+app=$(pids_of "weread/main\.lua")
+if [ -n "$app" ] && wrapper_running "weread-run\.sh"; then
+    touch /tmp/weread-reload
+    kill -TERM $app
+    echo reloaded
+    exit 0
+fi
+
+ko=$(pids_of "reader\.lua")
+if [ -n "$ko" ]; then
+    kill -TERM $ko
+    for i in $(seq 1 20); do wrapper_running "koreader\.sh" || break; sleep 1; done
+fi
+( setsid sh -c "/mnt/us/weread/run.sh >/tmp/weread-launch.log 2>&1" </dev/null >/dev/null 2>&1 & )
+echo started
+REMOTE

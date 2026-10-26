@@ -1,0 +1,8 @@
+#!/bin/sh
+# 远程操作 Kindle 上的 App（开发用）：把指令写进 /tmp/weread-input，App 半秒内读取并当作真实触摸执行。
+# 用法：tools/ktap tap 1196 1627      点击
+#       tools/ktap swipe north 600 900  滑动（方向 起点）
+#       tools/ktap key NextPage         翻页键
+#       tools/ktap hold 300 400         长按
+cd "$(dirname "$0")/.."
+tools/kssh "echo '$*' >> /tmp/weread-input"

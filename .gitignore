@@ -1,0 +1,6 @@
+node_modules/
+.data/
+.DS_Store
+tools/.kindle-ip
+__pycache__/
+*.pyc

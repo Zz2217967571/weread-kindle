@@ -1,0 +1,14 @@
+#!/bin/sh
+# 抓取 Kindle 当前屏幕（8bpp 灰度帧缓冲，行宽 1280）存成 PNG。用法：tools/kshot out.png
+set -e
+cd "$(dirname "$0")/.."
+OUT="${1:-shot.png}"
+tools/kssh 'dd if=/dev/fb0 bs=1280 count=1688 2>/dev/null' >/tmp/kindle-fb.raw
+python3 -I - "$OUT" <<'PY'
+import sys
+from PIL import Image
+raw = open('/tmp/kindle-fb.raw', 'rb').read()
+img = Image.frombytes('L', (1280, len(raw) // 1280), raw)
+img.crop((0, 0, 1264, 1680)).save(sys.argv[1])
+PY
+echo "$OUT"
