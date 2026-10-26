@@ -38,7 +38,7 @@
 1. 用数据线把 Kindle 连到电脑，确认能看到 `documents` 和 `koreader` 两个文件夹。
 2. 克隆本仓库，运行：
    ```sh
-   git clone https://github.com/<你的用户名>/weread-kindle.git
+   git clone https://github.com/Zz2217967571/weread-kindle.git
    cd weread-kindle
    tools/install-usb.sh /Volumes/Kindle
    ```
